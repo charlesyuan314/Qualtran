@@ -30,9 +30,12 @@ def test_product_signature():
     assert _product_block_encoding().signature == Signature(
         [Register("system", QBit()), Register("ancilla", QAny(1)), Register("resource", QAny(0))]
     )
-    with pytest.raises(AssertionError):
+
+
+def test_product_checks():
+    with pytest.raises(ValueError):
         _ = Product([])
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         _ = Product([Unitary(TGate(), dtype=QBit()), Unitary(CNOT(), dtype=QAny(2))])
 
 
@@ -63,5 +66,20 @@ def test_product_tensors():
     bloq = bb.finalize(system=system, resource=resource)
 
     from_gate = np.matmul(TGate().tensor_contract(), Hadamard().tensor_contract())
+    from_tensors = bloq.tensor_contract()
+    np.testing.assert_allclose(from_gate, from_tensors)
+
+
+def test_product_single_tensors():
+    bb = BloqBuilder()
+    system = bb.add_register("system", 1)
+    ancilla = bb.add_register("ancilla", 0)
+    resource = bb.add_register("resource", 0)
+    system, ancilla, resource = bb.add_t(
+        Product([Unitary(TGate(), dtype=QBit())]), system=system, ancilla=ancilla, resource=resource
+    )
+    bloq = bb.finalize(system=system, ancilla=ancilla, resource=resource)
+
+    from_gate = TGate().tensor_contract()
     from_tensors = bloq.tensor_contract()
     np.testing.assert_allclose(from_gate, from_tensors)
