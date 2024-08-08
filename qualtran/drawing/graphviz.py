@@ -372,16 +372,18 @@ class PrettyGraphDrawer(GraphDrawer):
         return 'BORDER="0" CELLBORDER="1" CELLSPACING="0"'
 
     def get_binst_header_text(self, binst: BloqInstance):
-        from qualtran.bloqs.bookkeeping import Join, Split
+        from qualtran.bloqs.bookkeeping import Join, Partition, Split
 
-        if isinstance(binst.bloq, (Split, Join)):
+        if isinstance(binst.bloq, (Split, Join, Partition)):
             return ''
         return f'<font point-size="10">{html.escape(str(binst.bloq))}</font>'
 
     def soq_label(self, soq: Soquet):
-        from qualtran.bloqs.bookkeeping import Join, Split
+        from qualtran.bloqs.bookkeeping import Join, Partition, Split
 
-        if isinstance(soq.binst, BloqInstance) and isinstance(soq.binst.bloq, (Split, Join)):
+        if isinstance(soq.binst, BloqInstance) and isinstance(
+            soq.binst.bloq, (Split, Join, Partition)
+        ):
             return ''
         return soq.pretty()
 

@@ -267,3 +267,6 @@ class XGate(Bloq):
             return Text('X')
 
         return ModPlus()
+
+    def __str__(self):
+        return 'X'

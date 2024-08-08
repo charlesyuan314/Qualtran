@@ -168,7 +168,7 @@ class Adjoint(GateWithRegisters):
 
     def __str__(self) -> str:
         """Delegate to subbloq's `__str__` method."""
-        return f'Adjoint(subbloq={str(self.subbloq)})'
+        return self.pretty_name()
 
     def wire_symbol(
         self, reg: Optional['Register'], idx: Tuple[int, ...] = tuple()

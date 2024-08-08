@@ -72,6 +72,12 @@ class PrepareUniformSuperposition(GateWithRegisters):
     def signature(self) -> Signature:
         return Signature.build(ctrl=slen(self.cvs), target=bit_length(self.n - 1))
 
+    def __str__(self):
+        return 'H'
+
+    def pretty_name(self):
+        return 'H'
+
     def wire_symbol(
         self, reg: Optional['Register'], idx: Tuple[int, ...] = tuple()
     ) -> 'WireSymbol':

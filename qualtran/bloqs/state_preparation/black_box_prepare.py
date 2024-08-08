@@ -88,6 +88,9 @@ class BlackBoxPrepare(Bloq):
     def pretty_name(self) -> str:
         return 'Prep'
 
+    def __str__(self):
+        return self.pretty_name()
+
 
 @bloq_example
 def _black_box_prepare() -> BlackBoxPrepare:

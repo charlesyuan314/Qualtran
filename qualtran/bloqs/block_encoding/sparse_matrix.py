@@ -271,6 +271,12 @@ class TopLeftRowColumnOracle(RowColumnOracle):
     system_bitsize: SymbolicInt
     _num_nonzero: SymbolicInt = field()
 
+    def __str__(self):
+        return 'TopLeftRowColumn'
+
+    def pretty_name(self):
+        return self.__str__()
+
     @_num_nonzero.default
     def _num_nonzero_default(self):
         # Default to a matrix with all entries non-zero
@@ -380,6 +386,12 @@ class ExplicitEntryOracle(EntryOracle):
         i: The row index.
         j: The column index.
     """
+
+    def __str__(self):
+        return 'ExplicitEntry'
+
+    def pretty_name(self):
+        return self.__str__()
 
     system_bitsize: SymbolicInt
     data: NDArray[np.float64] = field(

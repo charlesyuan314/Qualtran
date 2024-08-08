@@ -114,6 +114,9 @@ class MultiControlPauli(GateWithRegisters):
         ctrl = f'C^{n}' if is_symbolic(n) or n > 2 else ['', 'C', 'CC'][int(n)]
         return f'{ctrl}{self.target_gate!s}'
 
+    def __str__(self):
+        return self.pretty_name()
+
     def _circuit_diagram_info_(self, _) -> cirq.CircuitDiagramInfo:
         wire_symbols = ["@" if b else "@(0)" for b in self.concrete_cvs]
         wire_symbols += [str(self.target_gate)]
