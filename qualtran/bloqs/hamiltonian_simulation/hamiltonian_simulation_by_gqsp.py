@@ -19,8 +19,7 @@ import numpy as np
 from attrs import field, frozen
 from numpy.typing import NDArray
 
-from qualtran import Bloq, bloq_example, BloqDocSpec, CtrlSpec, Signature, Soquet
-from qualtran.bloqs.basic_gates.su2_rotation import SU2RotationGate
+from qualtran import Bloq, bloq_example, BloqDocSpec, Signature, Soquet
 from qualtran.bloqs.qsp.generalized_qsp import GeneralizedQSP
 from qualtran.bloqs.qubitization.qubitization_walk_operator import QubitizationWalkOperator
 from qualtran.linalg.polynomial.jacobi_anger_approximations import (
@@ -185,12 +184,9 @@ class HamiltonianSimulationByGQSP(Bloq):
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
         counts = Counter[Bloq]()
 
-        d = self.degree
         counts[self.walk_operator.prepare] += 1
         counts[self.walk_operator.prepare.adjoint()] += 1
-        counts[self.walk_operator.controlled(ctrl_spec=CtrlSpec(cvs=0))] += d
-        counts[self.walk_operator.adjoint().controlled()] += d
-        counts[SU2RotationGate.arbitrary(ssa)] += 2 * d + 1
+        counts[self.gqsp] += 1
 
         return set(counts.items())
 
