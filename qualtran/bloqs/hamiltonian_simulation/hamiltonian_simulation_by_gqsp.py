@@ -20,6 +20,7 @@ from attrs import field, frozen
 from numpy.typing import NDArray
 
 from qualtran import Bloq, bloq_example, BloqDocSpec, Signature, Soquet
+from qualtran.bloqs.block_encoding import BlockEncoding
 from qualtran.bloqs.qsp.generalized_qsp import GeneralizedQSP
 from qualtran.bloqs.qubitization.qubitization_walk_operator import QubitizationWalkOperator
 from qualtran.linalg.polynomial.jacobi_anger_approximations import (
@@ -91,12 +92,15 @@ class HamiltonianSimulationByGQSP(Bloq):
                    the underlying GQSP rotations.
     """
 
-    walk_operator: QubitizationWalkOperator
+    walk_operator: Union[QubitizationWalkOperator, BlockEncoding]
     t: SymbolicFloat = field(kw_only=True)
     precision: SymbolicFloat = field(kw_only=True)
 
     def __attrs_post_init__(self):
-        if self.walk_operator.sum_of_lcu_coefficients is None:
+        if (
+            isinstance(self.walk_operator, QubitizationWalkOperator)
+            and self.walk_operator.sum_of_lcu_coefficients is None
+        ):
             raise ValueError(
                 f"Missing attribute `sum_of_ham_coeffs` for {self.walk_operator}, cannot implement Hamiltonian Simulation"
             )
@@ -106,7 +110,9 @@ class HamiltonianSimulationByGQSP(Bloq):
 
     @property
     def alpha(self):
-        return self.walk_operator.sum_of_lcu_coefficients
+        if isinstance(self.walk_operator, QubitizationWalkOperator):
+            return self.walk_operator.sum_of_lcu_coefficients
+        return self.walk_operator.alpha
 
     @cached_property
     def degree(self) -> SymbolicInt:
@@ -140,6 +146,12 @@ class HamiltonianSimulationByGQSP(Bloq):
     def signature(self) -> 'Signature':
         return self.gqsp.signature
 
+    @property
+    def prepare(self):
+        if isinstance(self.walk_operator, QubitizationWalkOperator):
+            return self.walk_operator.prepare
+        return self.walk_operator.signal_state
+
     def __add_prepare(
         self,
         bb: 'BloqBuilder',
@@ -148,7 +160,7 @@ class HamiltonianSimulationByGQSP(Bloq):
         *,
         adjoint: bool = False,
     ) -> Tuple[Dict[str, 'SoquetT'], Dict[str, 'SoquetT']]:
-        prepare = self.walk_operator.prepare
+        prepare = self.prepare
 
         selection_registers = {reg.name: gqsp_soqs[reg.name] for reg in prepare.selection_registers}
         prepare_out_soqs = bb.add_d(
@@ -163,8 +175,7 @@ class HamiltonianSimulationByGQSP(Bloq):
 
     def build_composite_bloq(self, bb: 'BloqBuilder', **soqs: 'SoquetT') -> Dict[str, 'SoquetT']:
         state_prep_ancilla: Dict[str, 'SoquetT'] = {
-            reg.name: bb.allocate(reg.total_bits())
-            for reg in self.walk_operator.prepare.junk_registers
+            reg.name: bb.allocate(reg.total_bits()) for reg in self.prepare.junk_registers
         }
 
         # PREPARE, GQSP, PREPARE†
@@ -184,8 +195,8 @@ class HamiltonianSimulationByGQSP(Bloq):
     def build_call_graph(self, ssa: 'SympySymbolAllocator') -> Set['BloqCountT']:
         counts = Counter[Bloq]()
 
-        counts[self.walk_operator.prepare] += 1
-        counts[self.walk_operator.prepare.adjoint()] += 1
+        counts[self.prepare] += 1
+        counts[self.prepare.adjoint()] += 1
         counts[self.gqsp] += 1
 
         return set(counts.items())
