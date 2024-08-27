@@ -15,27 +15,30 @@ from typing import Mapping
 
 import cirq
 
-from qualtran import Bloq, Controlled
+from qualtran import Adjoint, Bloq, Controlled
 from qualtran.symbolics import ceil, SymbolicInt
+
+
+def t_count_for_gate(bloq: Bloq):
+    from qualtran.resource_counting.classify_bloqs import bloq_is_clifford, bloq_is_rotation
+    from qualtran.cirq_interop.t_complexity_protocol import TComplexity
+    from qualtran.bloqs.basic_gates import TGate
+
+    if isinstance(bloq, Adjoint):
+        return t_count_for_gate(bloq.subbloq)
+    if isinstance(bloq, Controlled):
+        return 4 + t_count_for_gate(bloq.subbloq)
+    if isinstance(bloq, TGate):
+        return 1
+    if bloq_is_clifford(bloq):
+        return 0
+    if bloq_is_rotation(bloq) and not cirq.has_stabilizer_effect(bloq):
+        assert hasattr(bloq, 'eps')
+        return ceil(TComplexity.rotation_cost(bloq.eps))
+    return bloq.t_complexity().t
 
 
 def t_counts_from_sigma(sigma: Mapping['Bloq', SymbolicInt]) -> SymbolicInt:
     """Aggregates T-counts from a sigma dictionary by summing T-costs for all rotation bloqs."""
-    from qualtran.bloqs.basic_gates import SGate, TGate
-    from qualtran.cirq_interop.t_complexity_protocol import TComplexity
-    from qualtran.resource_counting.classify_bloqs import bloq_is_rotation
 
-    ret = sigma.get(TGate(), 0) + sigma.get(TGate().adjoint(), 0)
-    for bloq, counts in sigma.items():
-        while isinstance(bloq, Controlled):
-            # TODO native controlled rotation bloqs missing (CRz, CRy etc.)
-            #      https://github.com/quantumlib/Qualtran/issues/878
-            bloq = bloq.subbloq
-        if (
-            not isinstance(bloq, (TGate, SGate))
-            and bloq_is_rotation(bloq)
-            and not cirq.has_stabilizer_effect(bloq)
-        ):
-            assert hasattr(bloq, 'eps')
-            ret += ceil(TComplexity.rotation_cost(bloq.eps)) * counts
-    return ret
+    return sum(count * t_count_for_gate(bloq) for bloq, count in sigma.items())
